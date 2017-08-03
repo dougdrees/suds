@@ -162,4 +162,22 @@ class Algorithms
     # the queue.
   end
 
+  # Does a simplified brute force to try to close out the puzzle. It makes an guess
+  # to solve a single cell with only two remaining candidates and then propagates the impact
+  # through the puzzle, looking for conflicts. If a conflict is found, then it undoes the changes
+  # at picks the other value in the original cell. If there is no conflict and the puzzle is
+  # completely solved, then we're done. If there is no conflict but there are cells still unsolved,
+  # then we undo the changes and try a different cell. Undoing changes is done by saving away a
+  # snapshot (copy) of the grid state and restoring it to undo changes.
+  def forcing_chain
+    # Find a cell with two candidates
+    # Take a snapshot of the grid
+    # Pick one of the values and add it to the queue for that cell
+    # Call grid.process_queue
+    # Check for conflicts in the grid
+    # If conflicts, restore snapshot, pick the other value and repeat
+    # If solved, return
+    # Else, restore snapshot, pick another cell, and repeat
+  end
+
 end
