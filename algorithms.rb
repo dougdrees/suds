@@ -71,39 +71,79 @@ class Algorithms
     intersection_values = Set.new
     remainder_values = Set.new
 
-    # find the columns & rows that intersect
-    rows = Set.new
-    cols = Set.new
+    # find the units (columns & rows) that intersect
+    unit_set = Set.new
     block.foreach_cell do |cell|
-      rows.add(block.grid.rows[cell.ref.row])
-      cols.add(block.grid.columns[cell.ref.col])
+      unit_set.add(block.grid.rows[cell.ref.row])
+      unit_set.add(block.grid.columns[cell.ref.col])
     end
-    rows.each do |row|
+
+    # For each intersecting unit, we create a Set that is the cells in the intersection of
+    # the block and the intersecting unit. Using Set operations, we can then find hidden pairs.
+    unit_set.each do |unit|
+      # Create the intersection set.
       intersection_values.clear
-      intersection = block.intersection(row)
+      intersection = block.intersection(unit)
+
+      # Create a set of all candidates that are in the intersection cells
       intersection.each do |cell|
         intersection_values.merge(cell.candidates)
       end
+
+      # Create a set of the cells in the block that are not in the intersection - call it the
+      # remainder set
       remainder_set = block_set - intersection
+
+      # Create the set of all candidates that are in the remainder set
       remainder_values.clear
       remainder_set.each do |cell|
         remainder_values.merge(cell.candidates)
       end
-      values = intersection_values - remainder_values
-      # DPD - here we walk through the row remainder cells and mark any values
-      # in the values set.
-      # Next, we subtract the intersection from the rows set to create a new
-      # remainder_set and then mark any values in the block set.:w
-      #
+
+      # Now, subtract the remainder value set from the intersection value set. Any cells in the
+      # resulting set are hidden in the intersection.
+      hidden_candidates = intersection_values - remainder_values
+
+      # Here we walk through the cells in the intersecting unit that are not in the intersection
+      # and mark the hidden candidates.
+      unit = Set.new(unit.cell_ary)
+      remainder_set = unit - intersection
+      remainder_set.each do |cell|
+        hidden_candidates.each do |candidate|
+          cell.mark(candidate)
+        end
+      end
+
+      # Next, we reverse the process by finding hidden values in the intersection that are not
+      # in the unit remainder set.
+      remainder_set = unit_set - intersection
+
+      # Create the set of all candidates that are in the remainder set
+      remainder_values.clear
+      remainder_set.each do |cell|
+        remainder_values.merge(cell.candidates)
+      end
+
+      # Now, subtract the remainder value set from the intersection value set. Any cells in the
+      # resulting set are hidden in the intersection.
+      hidden_candidates = intersection_values - remainder_values
+
+      # Here we walk through the cells in the block that are not in the intersection
+      # and mark the hidden candidates.
+      remainder_set = block - intersection
+      remainder_set.each do |cell|
+        hidden_candidates.each do |candidate|
+          cell.mark(candidate)
+        end
+      end
     end
-    # DPD - do the same as above for columns
   end
 
   # Looks for hidden pairs (or triplets, quadruplets) of cells in a unit that are the only
   # ones with 2 (or 3 or 4) specific candidates. For example, if cells 3 and 8 are the
   # only cells in the unit that have the values 4 & 7 in their candidate sets, then they
   # become a pair with only those candidates.
-  kef hidden_pair
+  def hidden_pair
     # Create bit maps of the unit (one bit per cell in the unit) for each candidate value.
     # Build a hash with a key that is the bitmap for a candidate value and a value that
     # is an array of values with that same bitmap.
