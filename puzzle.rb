@@ -10,7 +10,7 @@ class Puzzle
     @puzzle_block = @puzzle_def["puzzle"]
     @width = @puzzle_block["width"]
     @height = @puzzle_block["height"]
-    @max_value = @width
+    @max_value = @width  # Assumes square puzzle with square blocks
     puts "#{@width}:#{@height}"
     @grid = Grid.new(@width, @height)
     #@grid.print_grid

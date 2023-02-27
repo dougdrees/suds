@@ -37,6 +37,16 @@ class Cell
     @candidates = Set.new
     (1..max_value).each { |n| @candidates.add(n) }
   end
+  
+  def clone(row, column, block)
+    cln = Cell.new(self.ref, row, column, block, 1)
+    cln.value = self.value
+    cln.fixed = self.fixed
+    cln.candidates.clear
+    self.candidates.foreach{ |n| cln.candidates.add(n) }
+    cln.freeze if self.fixed
+    cln
+  end
 
   def fix(value)
     @value = value

@@ -41,9 +41,7 @@ class Grid
   attr_reader :xDim, :yDim, :cells, :rows, :columns, :blocks, :un_fixed_count, :fix_queue
 
   def create_grid  # this implementation assumes square grids
-    (0..@yDim-1).each { |y| @rows    << Row.new(self, y) }
-    (0..@xDim-1).each { |x| @columns << Column.new(self, x) }
-    (0..@xDim-1).each { |x| @blocks  << Block.new(self, x) }
+    @un_fixed_count = @xDim * @yDim
     (0..@yDim-1).each do |y|
       yBlk = (y)/3
       (0..@xDim-1).each do |x|
@@ -59,17 +57,40 @@ class Grid
       end
     end
   end
+  
+  def duplicate(other)  # this implementation assumes square grids and it doesn't copy the fix_queue
+    # modify each cell to match the cell in other
+    @un_fixed_count = other.un_fixed.count
+    other.cells.foreach do | other_cell |
+      y = other_cell.ref.y
+      x = other_cell.ref.x
+      blk = (x/3)+3*(y/3)
+      new_cell = other_cell.clone(@rows[y], @columns[x], @blocks[blk])
+      
+      # puts "New Cell (#{x},#{y}) in #{blk}"
+      @cells[new_cell.ref] = new_cell
+      @rows[y].add_cell(new_cell)
+      @columns[x].add_cell(new_cell)
+      @blocks[blk].add_cell(new_cell)
+    end
+  end
 
-  def initialize(x_dim, y_dim)
+  def initialize(x_dim, y_dim, other = nil)
     @xDim = x_dim
     @yDim = y_dim
     @cells = {}
     @rows = []
     @columns = []
     @blocks = []
-    @un_fixed_count = x_dim * y_dim
+    (0..@yDim-1).each { |y| @rows    << Row.new(self, y) }
+    (0..@xDim-1).each { |x| @columns << Column.new(self, x) }
+    (0..@xDim-1).each { |x| @blocks  << Block.new(self, x) }
     @fix_queue = CellQueue.new
-    create_grid
+    if other 
+      duplicate_grid(other)
+    else
+      create_grid
+    end
   end
 
   def fix_cell(cell, value)
