@@ -1,46 +1,40 @@
 require_relative "cell"
 
 class Unit
-  attr_reader :index, :un_fixed_count, :cells, :grid, :cell_ary
+  attr_reader :unit_index, :cells, :grid
 
   def initialize(grid, index)
-    @un_fixed_count = 0
-    @cells = {}
-    @cell_ary = []
+    @cells = Array.new(9) # replace this 9 with information from the puzzle that was read.
     @grid = grid
-    @index = index
+    @unit_index = index
   end
 
-  def add_cell(cell)
-    #puts "add_cell: #{cell.ref}"
+  def add(cell, index_in_unit)
+    #puts "Add: #{cell.ref} at #{index_in_unit} in #{@unit_index}"
     #cell.print_candidates
     #puts
-    @cells[cell.ref] = cell
-    @un_fixed_count += 1
+    @cells[index_in_unit] = cell
   end
 
   def mark(value)
+    # self.print_unit
     foreach_cell { |cell| cell.mark(value) }
-    #self.print_unit
+    # self.print_unit
   end
 
   def mark_except(value, cell_ary)
     ref_set = Set.new
     cell_ary.each { |cell| ref_set.add cell.ref }
-    foreach_cell do |cell|
+    self.foreach_cell do |cell|
       cell.mark(value) unless ref_set.include? cell.ref
     end
-    #self.print_unit
-  end
-
-  def reduce_fix_count
-    @un_fixed_count -= 1
+    # self.print_unit
   end
 
   def scan_for_cells_to_fix()
-    foreach_cell do |cell|
-      #cell.print_candidates
-      #puts "#{cell.has_one_candidate?}:#{cell.fixed}:#{cell.value}"
+    self.foreach_cell do |cell|
+      # cell.print_candidates
+      # puts "#{cell.has_one_candidate?}:#{cell.fixed}:#{cell.value}"
       @grid.add_cell_to_queue(cell, cell.get_last_candidate) if cell.has_one_candidate?
     end
   end
@@ -50,29 +44,29 @@ class Unit
   end
 
   def foreach_cell
-    @cell_ary.each { |cell| yield cell }
+    @cells.each { |cell| yield cell }
   end
 
-  def contains_all?(cells)
+  def contains_all?(some_cells)
     has_all = true
-    cells.each { |input_cell| has_all = false unless contains?(input_cell) }
+    some_cells.each { |input_cell| has_all = false unless contains?(input_cell) }
     has_all
   end
 
   def contains?(cell)
     has_it = false
-    foreach_cell { |unit_cell| has_it = true if cell == unit_cell }
+    self.foreach_cell { |unit_cell| has_it = true if cell == unit_cell }
     has_it
   end
 
   def [](index)
-    @cell_ary[index]
+    @cells[index]
   end
 
   def print_unit
-    print "#{@index} #{@cells.length} <"
-    foreach_cell { |cell| cell.print_candidates if cell }
-    puts ">"
+    print "#{@cells.length} "    
+    self.foreach_cell { |cell| cell.print_candidates }
+    puts "|"
   end
 end
 
@@ -82,8 +76,7 @@ class Row < Unit
   end
 
   def add_cell(cell)
-    super(cell)
-    @cell_ary[cell.ref.y] = cell
+    self.add(cell, cell.ref.x)
   end
 
   def to_s
@@ -97,8 +90,7 @@ class Column < Unit
   end
 
   def add_cell(cell)
-    super(cell)
-    @cell_ary[cell.ref.x] = cell
+    self.add(cell, cell.ref.y)
   end
 
   def to_s
@@ -112,11 +104,10 @@ class Block < Unit
   end
 
   def add_cell(cell)
-    super(cell)
     col = cell.ref.x % 3
     row = cell.ref.y % 3
-    blk_index = row * 3 + col
-    @cell_ary[blk_index] = cell
+    blk_index = col + 3 * row
+    self.add(cell, blk_index)
   end
 
   def intersection(unit)
@@ -134,28 +125,74 @@ end
 
 if __FILE__ == $0
   # test code
+  cells = {}
+  rows = Array.new(9)
+  columns = Array.new(9)
+  blocks = Array.new(9)
+  NUM_CELLS = 81
 
-  unit_aRow = Row.new(nil, 7)
-  unit_aCol = Column.new(nil, 5)
-  unit_aBlk = Block.new(nil, 7)
-
-  (0..8).each do |x|
-    unit_aRef = CellRef.new(x,7)
-    unit_aCell = Cell.new(unit_aRef, unit_aRow, unit_aCol, unit_aBlk)
-    unit_aRow.add_cell(unit_aCell)
-    unit_aCell.fix(x)
+def print_puzzle(c, r, b)
+  (0..8).each do |col_index|
+    col = c[col_index]
+    (0..8).each do |cell_index|
+      entry = col[cell_index]
+      puts "Column #{col_index} at #{cell_index} is nil." if entry == nil
+      puts "Column #{col_index} at #{cell_index} ref is #{entry.ref} r=#{entry.row} c=#{entry.col} b=#{entry.block}." if col[cell_index]
+    end
   end
 
-  unit_aRow.print_unit
+  (0..8).each do |row_index|
+    row = r[row_index]
+    (0..8).each do |cell_index|
+    entry = row[cell_index]
+      puts "Row #{row_index} at #{cell_index} is nil." if entry == nil
+      puts "Row #{row_index} at #{cell_index} ref is #{entry.ref} r=#{entry.row} c=#{entry.col} b=#{entry.block}." if row[cell_index]
+    end
+  end  
 
-  puts unit_aRow.un_fixed_count
-
-  puts unit_aRow.index
-
-  col = 0
-  unit_aRow.foreach_cell do | cell |
-    puts "#{col}: #{cell.to_s}"
-    col += 1
+  (0..8).each do |blk_index|
+    blk = b[blk_index]
+    (0..8).each do |cell_index|
+      entry = blk[cell_index]
+      puts "Block #{blk_index} at #{cell_index} is nil." if entry == nil
+      puts "Block #{blk_index} at #{cell_index} ref is #{entry.ref} r=#{entry.row} c=#{entry.col} b=#{entry.block}." if blk[cell_index]
+    end
   end
+end
+    
+  (0..8).each do |index|
+    rows[index] = Row.new(nil, index)
+    columns[index] = Column.new(nil, index)
+    blocks[index] = Block.new(nil, index)
+  end
+  
+  (0..8).each do |index|
+    print "#{rows[index].cells.size} " 
+    print "#{columns[index].cells.size} "
+    print "#{blocks[index].cells.size} "
+    puts
+  end
+  
+  # create_grid  # this implementation assumes square grids
+  (0..8).each do |y| # once for each row
+    row_factor = (y)/3
+    (0..8).each do |x|
+      col_factor = (x)/3
+      ref = CellRef.new(x, y)
+      block = col_factor+row_factor*3
+      # puts "New Cell (#{x},#{y}) in #{block}"
+      cell = Cell.new(ref, block, 9)
+      cells[ref] = cell
+      columns[x].add_cell(cell)
+      rows[y].add_cell(cell)
+      blocks[block].add_cell(cell)
+      #print_puzzle(columns, rows, blocks)
+    end
+  end
+  
+  puts "number of cells added = #{cells.size}"
+  puts "ERROR: wrong number of cells added, should be #{NUM_CELLS}." if NUM_CELLS != cells.size
+  
+print_puzzle(columns, rows, blocks)
 
 end

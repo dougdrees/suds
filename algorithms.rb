@@ -21,10 +21,10 @@ class Algorithms
     # If found, add the cell to the queue with the singular value.
     (1..max_value).each do |candidate|
       count = 0
-      unit.cells.each { |_,c| count += 1 if c.candidates.include?(candidate) }
+      unit.foreach_cell { |cell| count += 1 if cell.candidates.include?(candidate) }
       if count == 1
-        unit.cells.each do |_,c|
-          @grid.add_cell_to_queue(c, candidate) if c.candidates.include?(candidate)
+        unit.foreach_cell do |cell|
+          @grid.add_cell_to_queue(cell, candidate) if cell.candidates.include?(candidate)
         end
       end
     end
@@ -106,6 +106,7 @@ class Algorithms
 
       # Here we walk through the cells in the intersecting unit that are not in the intersection
       # and mark the hidden candidates.
+      # puts "line 109 algorithms.rb"
       unit = Set.new(unit.cell_ary)
       remainder_set = unit - intersection
       remainder_set.each do |cell|

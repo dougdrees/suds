@@ -43,19 +43,20 @@ class Grid
   def create_grid  # this implementation assumes square grids
     @un_fixed_count = @xDim * @yDim
     (0..@yDim-1).each do |y|
-      yBlk = (y)/3
+      row_factor = (y)/3
       (0..@xDim-1).each do |x|
-        xBlk = (x)/3
+        col_factor = (x)/3
         ref = CellRef.new(x, y)
-        blk = xBlk+yBlk*3
+        blk = col_factor+row_factor*3
         # puts "New Cell (#{x},#{y}) in #{blk}"
-        cell = Cell.new(ref, @rows[y], @columns[x], @blocks[blk], @yDim)
+        cell = Cell.new(ref, blk, @yDim)
         @cells[ref] = cell
         @rows[y].add_cell(cell)
         @columns[x].add_cell(cell)
         @blocks[blk].add_cell(cell)
       end
     end
+    # self.print_grid
   end
   
   def duplicate(other)  # this implementation assumes square grids and it doesn't copy the fix_queue
@@ -97,12 +98,12 @@ class Grid
     return if cell.fixed
     @un_fixed_count -= 1
     cell.fix(value)
-    cell.row.mark(value)
-    cell.col.mark(value)
-    cell.block.mark(value)
-    cell.row.scan_for_cells_to_fix()
-    cell.col.scan_for_cells_to_fix()
-    cell.block.scan_for_cells_to_fix()
+    @rows[cell.row].mark(value)
+    @columns[cell.col].mark(value)
+    @blocks[cell.block].mark(value)
+    @rows[cell.row].scan_for_cells_to_fix()
+    @columns[cell.col].scan_for_cells_to_fix()
+    @blocks[cell.block].scan_for_cells_to_fix()
   end
 
   def add_ref_to_queue(x, y, value)
@@ -132,7 +133,11 @@ class Grid
 
   def print_grid
     puts "Dimensions of grid: #{@xDim}X#{yDim}"
-    @rows.each { |row| row.print_unit }
+    @rows.each do |row|
+      puts "  -------------------"
+      row.print_unit
+    end
+    puts "  -------------------"
     puts "Unsolved cell count = #{@un_fixed_count}"
   end
 end

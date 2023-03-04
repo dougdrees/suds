@@ -25,27 +25,41 @@ class CellRef
 end
 
 class Cell
-  attr_reader :candidates, :value, :fixed, :ref, :row, :col, :block
+  attr_reader :candidates, :value, :fixed, :ref, :row, :col, :block, :max_value
+  attr_writer :value, :fixed
 
-  def initialize(reference, row, column, block, max_value=9)
+  def initialize(reference, block, max=9)
     @ref = reference
-    @row = row
-    @col = column
+    @row = reference.y
+    @col = reference.x
     @block = block
     @fixed = false
     @value = nil
+    @max_value = max
     @candidates = Set.new
-    (1..max_value).each { |n| @candidates.add(n) }
+    (1..max).each { |n| @candidates.add(n) }
   end
   
-  def clone(row, column, block)
-    cln = Cell.new(self.ref, row, column, block, 1)
-    cln.value = self.value
-    cln.fixed = self.fixed
+  def clone()
+    cln = Cell.new(self.ref, self.block, self.max_value)
     cln.candidates.clear
-    self.candidates.foreach{ |n| cln.candidates.add(n) }
-    cln.freeze if self.fixed
+    cln.fixed = @fixed
+    cln.value = @value
+    @candidates.each{ |n| cln.candidates.add(n) }
+    cln.freeze if @fixed
     cln
+  end
+  
+  def isEqual?(other)
+    false if @ref != other.ref
+    false if @row != other.row
+    false if @col != other.col
+    false if @block != other.block
+    false if @fixed != other.fixed
+    false if @value != other.value
+    false if @max_value != other.max_value
+    @candidates.each { |n| false if !other.candidates.include?(n) }
+    true
   end
 
   def fix(value)
@@ -53,9 +67,6 @@ class Cell
     @fixed = true
     @candidates.clear
     self.freeze
-    @row.reduce_fix_count
-    @col.reduce_fix_count
-    @block.reduce_fix_count
   end
 
   def mark(value)
@@ -78,16 +89,16 @@ class Cell
     output = "#{@ref.to_s}"
     output << "= #{@value.to_s} " if @fixed
     output << "[#{@candidates.to_a.join(",")}] " if !@candidates.empty?
-    output << "in (#{@row.to_s}, #{@col.to_s}, #{@block.to_s})"
+    output << "in (#{@row}, #{@col}, #{@block})"
     output
   end
 
   def print_candidates
-    print " "
     if @fixed
-      print "(#{value})"
+      print "|#{value}"
     else
-      @candidates.each { |v| print v}
+    print "|"
+      @candidates.each { |v| print "#{v}" }
     end
   end
 
@@ -95,6 +106,8 @@ class Cell
     print("#{@ref.to_s} ")
   end
 end
+
+if __FILE__ == $0
 
 class Cell_TestUnit
   attr_reader :name
@@ -108,17 +121,13 @@ class Cell_TestUnit
   end
 end
 
-if __FILE__ == $0
   # test code
 
   cell_aRef = CellRef.new(2,3)
   puts cell_aRef.to_s
 
-  cell_aRow = Cell_TestUnit.new("Row")
-  cell_aCol = Cell_TestUnit.new("Column")
-  cell_aBlk = Cell_TestUnit.new("Block")
-
-  cell_aCell = Cell.new(cell_aRef, cell_aRow, cell_aCol, cell_aBlk)
+  cell_aBlk = 8
+  cell_aCell = Cell.new(cell_aRef, cell_aBlk)
   cell_aCell.print_ref
   puts
   puts cell_aCell.to_s
@@ -142,4 +151,8 @@ if __FILE__ == $0
 
   cell_aCell.mark(3)
   puts cell_aCell.to_s
+  
+  new_cell = cell_aCell.clone
+  puts "ERROR: clone method did not return exact copy of cell." if !cell_aCell.isEqual?(new_cell)
+  
 end
